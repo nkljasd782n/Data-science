@@ -1,0 +1,14 @@
+//Create list in single cell containing values from every column with name "nazwa"
+
+List.Select(
+    Record.ToList(
+        Record.SelectFields(
+            _, 
+            List.Select(
+                Record.FieldNames(_),
+                each Text.StartsWith(_, "nazwa")
+            )
+        )
+    ),
+    each _ <> null and _ <> ""
+)
