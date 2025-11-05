@@ -1,0 +1,13 @@
+//Count not empty rows in 5 first columns called nazwa
+
+= List.NonNullCount(
+    Record.ToList(
+        Record.SelectFields(
+            _, 
+            List.Transform(
+                {1..5}, 
+                each "nazwa" & Text.From(_)
+            )
+        )
+    )
+)
