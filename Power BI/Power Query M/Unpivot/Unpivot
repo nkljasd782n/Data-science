@@ -1,0 +1,38 @@
+let
+    // 1. Load the CSV file. 
+    // Make sure this "Source" step matches your file path and settings.
+    Source = Csv.Document(File.Contents("C:\example2.csv"), [Delimiter=";", Columns=102, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    
+    // 2. Use the first row as headers (id, data, nazwa1, ean1, etc.)
+    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    
+    // 3. Keep 'id' and 'data' columns, and unpivot ALL other columns.
+    // This turns wide columns (nazwa1, ean1...) into rows.
+    #"Unpivoted Other Columns" = Table.UnpivotOtherColumns(#"Promoted Headers", {"id", "data"}, "Attribute", "Value"),
+    
+    // 4. Split the "Attribute" column (e.g., "nazwa1") into the text part ("nazwa") and the number part ("1").
+    // This creates a column for the data type (nazwa, ean, sku...) and a column for the product index (1, 2, 3...).
+    #"Split Column by Character Transition" = Table.SplitColumn(#"Unpivoted Other Columns", "Attribute", Splitter.SplitTextByCharacterTransition({"a".."z"}, {"0".."9"}), {"Attribute.Text", "product_index"}),
+    
+    // 5. Pivot the "Attribute.Text" column.
+    // This creates new columns named "nazwa", "ean", "sku", "ilosc", and "zdjecie".
+    // The "Value" column is used to fill in the cells for these new columns.
+    #"Pivoted Column" = Table.Pivot(#"Split Column by Character Transition", List.Distinct(#"Split Column by Character Transition"[Attribute.Text]), "Attribute.Text", "Value"),
+    
+    // 6. Filter out empty product rows (where 'nazwa' is null or empty)
+    // This cleans up the data from the original file's empty product slots.
+    #"Filtered Rows" = Table.SelectRows(#"Pivoted Column", each [nazwa] <> null and [nazwa] <> ""),
+    
+    // 7. (Optional but recommended) Set the data types for each column
+    #"Changed Type" = Table.TransformColumnTypes(#"Filtered Rows",{
+        {"id", Int64.Type}, 
+        {"data", type text}, 
+        {"product_index", Int64.Type}, 
+        {"nazwa", type text}, 
+        {"ean", type text}, 
+        {"sku", type text}, 
+        {"ilosc", Int64.Type}, 
+        {"zdjecie", type text}
+    })
+in
+    #"Changed Type"
