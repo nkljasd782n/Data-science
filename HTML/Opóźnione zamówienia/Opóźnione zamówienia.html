@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opóźnione przesyłki</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px 5px 0 0;
+            transition: background 0.3s;
+        }
+        .tab.active {
+            background: #4CAF50;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .file-input {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 2px dashed #4CAF50;
+            border-radius: 5px;
+            text-align: center;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        tr:hover {
+            background: #f5f5f5;
+        }
+        .settings-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .settings-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .courier-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .courier-group h4 {
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+        .courier-item {
+            margin: 5px 0;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .courier-item button {
+            padding: 5px 10px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .group-input {
+            margin: 10px 0;
+            padding: 8px;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .cutoff-setting {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .cutoff-setting label {
+            font-weight: bold;
+        }
+        .cutoff-setting input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .add-btn, .export-btn {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            margin-right: 10px;
+        }
+        .export-btn {
+            background: #2196F3;
+        }
+        .copy-btn {
+            background: #FF9800;
+        }
+        .add-btn:hover, .export-btn:hover {
+            opacity: 0.9;
+        }
+        .time-warning {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .time-negative {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .group-header {
+            background: #e3f2fd !important;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        label {
+            display: inline-block;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .settings-buttons {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #ddd;
+        }
+        .controls-section {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .tick-counter {
+            font-weight: bold;
+            color: #4CAF50;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 3px;
+            border: 1px solid #4CAF50;
+        }
+        .checkbox-cell {
+            text-align: center;
+            width: 40px;
+        }
+        .checkbox-cell input[type="checkbox"] {
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+        .demo-note {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            border-radius: 5px;
+        }
+        .demo-note h3 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+        .demo-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 Opóźnione przesyłki</h1>
+        
+        <div class="demo-note">
+            <h3>🎯 Tryb demonstracyjny</h3>
+            <p>Aplikacja zawiera przykładowe dane do testowania. Możesz:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>Załadować dane przykładowe poniższym przyciskiem</li>
+                <li>Lub wgrać własny plik CSV</li>
+                <li>Grupy kurierów zostały już skonfigurowane dla przykładowych danych</li>
+            </ul>
+            <button class="demo-button" onclick="loadDemoData()">🚀 Załaduj dane przykładowe</button>
+            <button class="demo-button" onclick="downloadExampleCSV()">📥 Pobierz przykładowy CSV</button>
+        </div>
+
+        <div class="file-input">
+            <h3>Wgraj plik csv</h3>
+            <input type="file" id="fileInput" accept=".csv">
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('display')">📋 Lista zamówień</button>
+            <button class="tab" onclick="switchTab('settings')">⚙️ Ustawienia</button>
+        </div>
+
+        <div id="display" class="tab-content active">
+            <div class="controls-section">
+                <button class="export-btn" onclick="exportToPDF('display')">📄 Eksport do PDF</button>
+                <button class="export-btn copy-btn" onclick="copySelectedIDs('display')">📋 Kopiuj ID zaznaczonych</button>
+                <button class="export-btn" onclick="toggleAllCheckboxes('display')">☑️ Zaznacz/Odznacz wszystkie</button>
+                <div class="tick-counter" id="displayCounter">Zaznaczonych: 0</div>
+            </div>
+            <div id="displayTable"></div>
+        </div>
+
+        <div id="settings" class="tab-content">
+            <div class="settings-section">
+                <h3>Grupy kurierów</h3>
+                <p style="margin-bottom: 15px; color: #666;">Grupuj wielu kurierów pod jedną nazwą. Każda grupa ma własną godzinę odbioru przez kuriera.</p>
+                <div id="courierGroups"></div>
+                <button class="add-btn" onclick="addCourierGroup()">+ Dodaj grupę</button>
+            </div>
+
+            <div class="settings-buttons">
+                <button class="export-btn" onclick="exportSettings()">💾 Eksport ustawień</button>
+                <input type="file" id="importSettings" accept=".json" style="display: none;" onchange="importSettings(event)">
+                <button class="export-btn" onclick="document.getElementById('importSettings').click()">📂 Import ustawień</button>
+                <button class="add-btn" style="background: #ff9800;" onclick="clearSettings()">🗑️ Wyczyść ustawienia</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let csvData = [];
+        let courierGroups = {};
+
+        // Initialize default courier groups
+        function initializeDefaultGroups() {
+            if (Object.keys(courierGroups).length === 0) {
+                courierGroups = {
+                    "DPD Express": {
+                        couriers: ["DPD", "DPD Express", "DPD Punkty"],
+                        cutoffTime: "14:00"
+                    },
+                    "InPost": {
+                        couriers: ["InPost", "InPost Paczkomaty", "InPost Kurier"],
+                        cutoffTime: "16:00"
+                    },
+                    "DHL": {
+                        couriers: ["DHL", "DHL Express"],
+                        cutoffTime: "15:00"
+                    },
+                    "UPS": {
+                        couriers: ["UPS", "UPS Express"],
+                        cutoffTime: "15:30"
+                    },
+                    "Poczta Polska": {
+                        couriers: ["Poczta Polska", "Pocztex"],
+                        cutoffTime: "17:00"
+                    },
+                    "FedEx": {
+                        couriers: ["FedEx", "FedEx Express"],
+                        cutoffTime: "14:30"
+                    }
+                };
+                saveSettings();
+            }
+        }
+
+        function generateRandomDate(daysFromNow) {
+            const now = new Date();
+            const targetDate = new Date(now.getTime() + (daysFromNow * 24 * 60 * 60 * 1000));
+            
+            // Add some random hours (0-23)
+            const randomHours = Math.floor(Math.random() * 24);
+            const randomMinutes = Math.floor(Math.random() * 60);
+            
+            targetDate.setHours(randomHours, randomMinutes, 0, 0);
+            
+            // Format: DD.MM.YYYY HH:MM:SS
+            const day = String(targetDate.getDate()).padStart(2, '0');
+            const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const year = targetDate.getFullYear();
+            const hours = String(targetDate.getHours()).padStart(2, '0');
+            const minutes = String(targetDate.getMinutes()).padStart(2, '0');
+            const seconds = String(targetDate.getSeconds()).padStart(2, '0');
+            
+            return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function generateExampleData() {
+            const couriers = ["DPD", "InPost", "DHL", "UPS", "Poczta Polska", "FedEx", "DPD Express", "InPost Paczkomaty", "DHL Express"];
+            const exampleData = [];
+            
+            for (let i = 1; i <= 100; i++) {
+                // Generate dates ranging from -6 hours to +5 days
+                const daysRange = (Math.random() * 5.25) - 0.25; // -0.25 to 5 days
+                const courier = couriers[Math.floor(Math.random() * couriers.length)];
+                
+                // Generate payment date (usually 1-3 days before final date)
+                const paymentDaysOffset = daysRange - (Math.random() * 3 + 1);
+                const paymentDate = generateRandomDate(paymentDaysOffset);
+                
+                exampleData.push({
+                    ID_Base: `ORD${String(i).padStart(6, '0')}`,
+                    ID_SHOP: `SHP${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+                    Courier: courier,
+                    Allegro_final_date: generateRandomDate(daysRange),
+                    payment_date: paymentDate
+                });
+            }
+            
+            return exampleData;
+        }
+
+        function loadDemoData() {
+            csvData = generateExampleData();
+            initializeDefaultGroups();
+            renderSettings();
+            updateTables();
+        }
+
+        function downloadExampleCSV() {
+            const exampleData = generateExampleData();
+            const headers = ['ID_Base', 'ID_SHOP', 'Courier', 'Allegro_final_date', 'payment_date'];
+            
+            let csvContent = headers.join(';') + '\n';
+            exampleData.forEach(row => {
+                csvContent += `${row.ID_Base};${row.ID_SHOP};${row.Courier};${row.Allegro_final_date};${row.payment_date}\n`;
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `example_orders_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        loadSettings();
+        initializeDefaultGroups();
+
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                Papa.parse(file, {
+                    header: true,
+                    delimiter: ';',
+                    skipEmptyLines: true,
+                    dynamicTyping: false,
+                    complete: function(results) {
+                        csvData = results.data;
+                        initializeSettings();
+                        updateTables();
+                    },
+                    error: function(error) {
+                        alert('Error parsing CSV: ' + error.message);
+                    }
+                });
+            }
+        }
+
+        function loadSettings() {
+            const savedGroups = JSON.parse(localStorage.getItem('courierGroups') || '{}');
+            courierGroups = savedGroups;
+            renderSettings();
+        }
+
+        function saveSettings() {
+            localStorage.setItem('courierGroups', JSON.stringify(courierGroups));
+        }
+
+        function initializeSettings() {
+            renderSettings();
+        }
+
+        function renderSettings() {
+            renderCourierGroups();
+        }
+
+        function renderCourierGroups() {
+            const groupsDiv = document.getElementById('courierGroups');
+            groupsDiv.innerHTML = '';
+            
+            Object.keys(courierGroups).forEach(groupName => {
+                const group = courierGroups[groupName];
+                const div = document.createElement('div');
+                div.className = 'courier-group';
+                
+                let couriersHtml = '';
+                group.couriers.forEach(courier => {
+                    couriersHtml += `
+                        <div class="courier-item">
+                            <span>${courier}</span>
+                            <button onclick="removeCourierFromGroup('${groupName}', '${courier}')">Usuń</button>
+                        </div>
+                    `;
+                });
+                
+                div.innerHTML = `
+                    <h4>Group: ${groupName}</h4>
+                    ${couriersHtml}
+                    <input type="text" class="group-input" placeholder="Nazwa kuriera" onkeypress="if(event.key==='Enter') addCourierToGroup('${groupName}', this.value, this)">
+                    <button class="add-btn" style="margin-top: 10px;" onclick="const input = this.previousElementSibling; addCourierToGroup('${groupName}', input.value, input)">Dodaj kuriera</button>
+                    <div class="cutoff-setting">
+                        <label>Ostateczna godzina:</label>
+                        <input type="time" value="${group.cutoffTime || '16:00'}" onchange="updateGroupCutoffTime('${groupName}', this.value)">
+                    </div>
+                    <button class="add-btn" style="background: #f44336; margin-top: 10px;" onclick="removeGroup('${groupName}')">Usuń grupę</button>
+                `;
+                groupsDiv.appendChild(div);
+            });
+        }
+
+        function addCourierGroup() {
+            const groupName = prompt('Enter group display name:');
+            if (groupName && groupName.trim()) {
+                courierGroups[groupName.trim()] = {
+                    couriers: [],
+                    cutoffTime: '16:00'
+                };
+                saveSettings();
+                renderSettings();
+            }
+        }
+
+        function addCourierToGroup(groupName, courierName, inputElement) {
+            if (courierName && courierName.trim()) {
+                if (!courierGroups[groupName].couriers.includes(courierName.trim())) {
+                    courierGroups[groupName].couriers.push(courierName.trim());
+                    saveSettings();
+                    renderSettings();
+                    updateTables();
+                }
+                if (inputElement) inputElement.value = '';
+            }
+        }
+
+        function removeCourierFromGroup(groupName, courier) {
+            courierGroups[groupName].couriers = courierGroups[groupName].couriers.filter(c => c !== courier);
+            saveSettings();
+            renderSettings();
+            updateTables();
+        }
+
+        function removeGroup(groupName) {
+            if (confirm(`Czy na pewno chcesz usunąć grupę "${groupName}"?`)) {
+                delete courierGroups[groupName];
+                saveSettings();
+                renderSettings();
+                updateTables();
+            }
+        }
+
+        function updateGroupCutoffTime(groupName, time) {
+            courierGroups[groupName].cutoffTime = time;
+            saveSettings();
+            updateTables();
+        }
+
+        function exportSettings() {
+            const settings = {
+                courierGroups: courierGroups
+            };
+            const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `order_manager_settings_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importSettings(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const settings = JSON.parse(e.target.result);
+                        if (settings.courierGroups) courierGroups = settings.courierGroups;
+                        saveSettings();
+                        renderSettings();
+                        updateTables();
+                        alert('Settings imported successfully!');
+                    } catch (error) {
+                        alert('Error importing settings: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+            event.target.value = '';
+        }
+
+        function clearSettings() {
+            if (confirm('Czy na pewno chcesz usunąc ustawienia?')) {
+                courierGroups = {};
+                localStorage.removeItem('courierGroups');
+                renderSettings();
+                updateTables();
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName !== 'settings') {
+                updateTables();
+            }
+        }
+
+        function getGroupForCourier(courier) {
+            for (const [groupName, groupData] of Object.entries(courierGroups)) {
+                if (groupData.couriers && groupData.couriers.includes(courier)) {
+                    return groupName;
+                }
+            }
+            return courier;
+        }
+
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            const parts = dateStr.split(/[\s.:-]/);
+            if (parts.length >= 5) {
+                return new Date(parts[2], parts[1] - 1, parts[0], parts[3], parts[4], parts[5] || 0);
+            }
+            return null;
+        }
+
+        function isSameDay(date1, date2) {
+            return date1.getFullYear() === date2.getFullYear() &&
+                   date1.getMonth() === date2.getMonth() &&
+                   date1.getDate() === date2.getDate();
+        }
+
+        function calculateTimeLeft(dateStr, groupName) {
+            const targetDate = parseDate(dateStr);
+            if (!targetDate) return { text: 'Invalid date', hours: Infinity };
+            
+            const now = new Date();
+            let effectiveTarget = targetDate;
+            
+            // If the Allegro final date is today, use cutoff time instead
+            if (isSameDay(targetDate, now)) {
+                const groupData = courierGroups[groupName];
+                const cutoffTime = groupData ? groupData.cutoffTime : '16:00';
+                const [cutoffHour, cutoffMinute] = cutoffTime.split(':').map(Number);
+                
+                effectiveTarget = new Date(now);
+                effectiveTarget.setHours(cutoffHour, cutoffMinute, 0, 0);
+            }
+            
+            const diff = effectiveTarget - now;
+            
+            const totalHours = Math.floor(diff / (1000 * 60 * 60));
+            const hours = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
+            const minutes = Math.floor((Math.abs(diff) % (1000 * 60 * 60)) / (1000 * 60));
+            
+            if (diff < 0) {
+                return { text: `-${hours}h ${minutes}m`, hours: totalHours };
+            }
+            
+            return { text: `${hours}h ${minutes}m`, hours: totalHours };
+        }
+
+        function updateCheckboxCounter(tableType) {
+            const counterDiv = tableType === 'display' ? 'displayCounter' : '';
+            const checkboxes = document.querySelectorAll(`#displayTable input[type="checkbox"]`);
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            document.getElementById(counterDiv).textContent = `Zaznaczonych: ${checkedCount}`;
+        }
+
+        function toggleAllCheckboxes(tableType) {
+            const checkboxes = document.querySelectorAll(`#displayTable input[type="checkbox"]`);
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+            });
+            
+            updateCheckboxCounter(tableType);
+        }
+
+        function copySelectedIDs(tableType) {
+            const checkboxes = document.querySelectorAll(`#displayTable input[type="checkbox"]:checked`);
+            const selectedIDs = [];
+            
+            checkboxes.forEach(checkbox => {
+                const row = checkbox.closest('tr');
+                const idCell = row.querySelector('td:nth-child(2)'); // ID Base is now in 2nd column
+                if (idCell) {
+                    selectedIDs.push(idCell.textContent.trim());
+                }
+            });
+            
+            if (selectedIDs.length === 0) {
+                alert('Nie zaznaczono żadnych zamówień');
+                return;
+            }
+            
+            const idText = selectedIDs.join('\n');
+            navigator.clipboard.writeText(idText).then(() => {
+                alert(`Skopiowano ${selectedIDs.length} ID Base do schowka`);
+            }).catch(err => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = idText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert(`Skopiowano ${selectedIDs.length} ID Base do schowka`);
+            });
+        }
+
+        function updateTables() {
+            if (csvData.length === 0) return;
+            updateDisplayTable();
+        }
+
+        function updateDisplayTable() {
+            const displayDiv = document.getElementById('displayTable');
+            
+            const sortedData = [...csvData].sort((a, b) => {
+                const groupA = getGroupForCourier(a.Courier);
+                const groupB = getGroupForCourier(b.Courier);
+                const timeA = calculateTimeLeft(a.Allegro_final_date, groupA);
+                const timeB = calculateTimeLeft(b.Allegro_final_date, groupB);
+                return timeA.hours - timeB.hours;
+            });
+
+            let html = '<table><thead><tr><th class="checkbox-cell">☑️</th><th>ID Base</th><th>ID Sklep</th><th>Kurier</th><th>Allegro ostateczna godzina</th><th>Zostało czasu</th><th>Data płatności</th></tr></thead><tbody>';
+            
+            sortedData.forEach(row => {
+                const groupName = getGroupForCourier(row.Courier);
+                const timeLeft = calculateTimeLeft(row.Allegro_final_date, groupName);
+                const isUrgent = timeLeft.hours >= 0 && timeLeft.hours < 10;
+                const isNegative = timeLeft.hours < 0;
+                
+                html += `<tr>
+                    <td class="checkbox-cell"><input type="checkbox" onchange="updateCheckboxCounter('display')"></td>
+                    <td>${row.ID_Base || ''}</td>
+                    <td>${row.ID_SHOP || ''}</td>
+                    <td>${groupName || ''}</td>
+                    <td>${row.Allegro_final_date || ''}</td>
+                    <td class="${isNegative ? 'time-negative' : (isUrgent ? 'time-warning' : '')}">${timeLeft.text}</td>
+                    <td>${row.payment_date || ''}</td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            displayDiv.innerHTML = html;
+            updateCheckboxCounter('display');
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+            
+            doc.setFontSize(16);
+            doc.text('Lista zamówień', 14, 15);
+            
+            const tableElement = document.querySelector('#displayTable table');
+            
+            if (!tableElement) {
+                alert('No data to export');
+                return;
+            }
+
+            const rows = [];
+            const headerRow = ['ID Base', 'ID sklep', 'Courier', 'Allegro Final Date', 'Time Left', 'Payment Date'];
+            
+            tableElement.querySelectorAll('tbody tr').forEach(tr => {
+                const cells = tr.querySelectorAll('td');
+                if (cells.length > 1) { // Skip checkbox column
+                    const rowData = Array.from(cells).slice(1).map(cell => 
+                        cell.textContent.trim()
+                    );
+                    rows.push(rowData);
+                }
+            });
+
+            doc.autoTable({
+                head: [headerRow],
+                body: rows,
+                startY: 20,
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [76, 175, 80] }
+            });
+
+            doc.save(`orders_${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+
+        // Auto-refresh times every minute
+        setInterval(() => {
+            if (csvData.length > 0) {
+                updateTables();
+            }
+        }, 60000);
+
+        // Regenerate example data on page refresh (only if using demo data)
+        window.addEventListener('load', () => {
+            const hasStoredData = localStorage.getItem('hasUploadedData');
+            if (!hasStoredData) {
+                // Auto-load demo data on first visit
+                setTimeout(() => {
+                    loadDemoData();
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>
