@@ -1,33 +1,50 @@
 let
-    // 1. Load the CSV file. 
-    // Make sure this "Source" step matches your file path and settings.
-    Source = Csv.Document(File.Contents("C:\example2.csv"), [Delimiter=";", Columns=102, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    // 1. Load the CSV file with proper delimiter and encoding
+    Source = Csv.Document(File.Contents("C:\example_file_expanded.csv"), [Delimiter=";", Columns=102, Encoding=65001, QuoteStyle=QuoteStyle.None]),
     
-    // 2. Use the first row as headers (id, data, nazwa1, ean1, etc.)
+    // 2. Use the first row as headers
     #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
     
-    // 3. Keep 'id' and 'data' columns, and unpivot ALL other columns.
-    // This turns wide columns (nazwa1, ean1...) into rows.
+    // 3. Keep 'id' and 'data' columns, unpivot all product-related columns
     #"Unpivoted Other Columns" = Table.UnpivotOtherColumns(#"Promoted Headers", {"id", "data"}, "Attribute", "Value"),
     
-    // 4. Split the "Attribute" column (e.g., "nazwa1") into the text part ("nazwa") and the number part ("1").
-    // This creates a column for the data type (nazwa, ean, sku...) and a column for the product index (1, 2, 3...).
-    #"Split Column by Character Transition" = Table.SplitColumn(#"Unpivoted Other Columns", "Attribute", Splitter.SplitTextByCharacterTransition({"a".."z"}, {"0".."9"}), {"Attribute.Text", "product_index"}),
+    // 4. Filter out rows where Value is null or empty (this removes empty product slots)
+    #"Filtered Empty Values" = Table.SelectRows(#"Unpivoted Other Columns", each [Value] <> null and [Value] <> ""),
     
-    // 5. Pivot the "Attribute.Text" column.
-    // This creates new columns named "nazwa", "ean", "sku", "ilosc", and "zdjecie".
-    // The "Value" column is used to fill in the cells for these new columns.
-    #"Pivoted Column" = Table.Pivot(#"Split Column by Character Transition", List.Distinct(#"Split Column by Character Transition"[Attribute.Text]), "Attribute.Text", "Value"),
+    // 5. Split the "Attribute" column into attribute type and product number
+    // Using a more robust regex-based approach
+    #"Added Custom Column" = Table.AddColumn(#"Filtered Empty Values", "AttributeType", each 
+        let
+            attr = [Attribute],
+            // Extract everything except the trailing digits
+            attrType = Text.BeforeDelimiter(attr, Text.End(attr, Text.Length(attr) - Text.Length(Text.TrimEnd(attr, {"0".."9"}))))
+        in
+            if Text.Length(Text.TrimEnd(attr, {"0".."9"})) > 0 then Text.TrimEnd(attr, {"0".."9"}) else attr
+    ),
     
-    // 6. Filter out empty product rows (where 'nazwa' is null or empty)
-    // This cleans up the data from the original file's empty product slots.
-    #"Filtered Rows" = Table.SelectRows(#"Pivoted Column", each [nazwa] <> null and [nazwa] <> ""),
+    #"Added Product Index" = Table.AddColumn(#"Added Custom Column", "ProductIndex", each 
+        let
+            attr = [Attribute],
+            // Extract trailing digits
+            digits = Text.End(attr, Text.Length(attr) - Text.Length(Text.TrimEnd(attr, {"0".."9"})))
+        in
+            if digits <> "" then Number.FromText(digits) else 1
+    ),
     
-    // 7. (Optional but recommended) Set the data types for each column
-    #"Changed Type" = Table.TransformColumnTypes(#"Filtered Rows",{
+    // 6. Remove the original Attribute column
+    #"Removed Attribute Column" = Table.RemoveColumns(#"Added Product Index", {"Attribute"}),
+    
+    // 7. Pivot the AttributeType to create columns for nazwa, ean, sku, ilosc, zdjecie
+    #"Pivoted Column" = Table.Pivot(#"Removed Attribute Column", List.Distinct(#"Removed Attribute Column"[AttributeType]), "AttributeType", "Value"),
+    
+    // 8. Filter out rows where nazwa is empty (incomplete products)
+    #"Filtered Complete Products" = Table.SelectRows(#"Pivoted Column", each [nazwa] <> null and [nazwa] <> ""),
+    
+    // 9. Set proper data types
+    #"Changed Type" = Table.TransformColumnTypes(#"Filtered Complete Products",{
         {"id", Int64.Type}, 
         {"data", type text}, 
-        {"product_index", Int64.Type}, 
+        {"ProductIndex", Int64.Type}, 
         {"nazwa", type text}, 
         {"ean", type text}, 
         {"sku", type text}, 
