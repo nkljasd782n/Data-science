@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Combination Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .upload-section {
+            border: 2px dashed #ddd;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 5px;
+            transition: border-color 0.3s;
+        }
+        
+        .upload-section:hover {
+            border-color: #007bff;
+        }
+        
+        .upload-section.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        
+        #fileInput {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+        }
+        
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        .export-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        
+        .export-options {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        .export-options label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .debug-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        
+        .debug-content {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: white;
+            padding: 15px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            border: 1px solid #ddd;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .control-group {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            min-width: 200px;
+            font-weight: bold;
+        }
+        
+        .control-group input, .control-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        
+        #results {
+            margin-top: 30px;
+        }
+        
+        .results-header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            border-radius: 5px 5px 0 0;
+            margin: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .results-content {
+            border: 1px solid #007bff;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .combination-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .combination-item:last-child {
+            border-bottom: none;
+        }
+        
+        .combination-item:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .combination-products {
+            flex: 1;
+            margin-right: 20px;
+        }
+        
+        .combination-count {
+            background-color: #007bff;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .product-tag {
+            display: inline-block;
+            background-color: #e9ecef;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 12px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #c3e6cb;
+            margin: 20px 0;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .warning {
+            color: #856404;
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ffeaa7;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Product Combination Analyzer - With Export</h1>
+        
+        <div class="upload-section" id="uploadSection">
+            <h3>Upload your CSV file</h3>
+            <p>Select or drag and drop your CSV file with product data</p>
+            <input type="file" id="fileInput" accept=".csv,.txt" />
+            <button class="btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+            <button class="btn btn-secondary" onclick="toggleDebug()">Toggle Debug Info</button>
+        </div>
+        
+        <div class="debug-section" id="debugSection" style="display: none;">
+            <h4>Debug Information</h4>
+            <div class="debug-content" id="debugContent"></div>
+        </div>
+        
+        <div class="controls" id="controls" style="display: none;">
+            <div class="control-group">
+                <label for="separator">CSV Separator:</label>
+                <select id="separator">
+                    <option value=";">Semicolon (;)</option>
+                    <option value=",">Comma (,)</option>
+                    <option value="\t">Tab</option>
+                    <option value="|">Pipe (|)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="minCombinationSize">Minimum combination size:</label>
+                <input type="number" id="minCombinationSize" value="2" min="2" max="10" />
+                <span style="color: #666; font-size: 14px;">Minimum number of products in combination</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="maxCombinationSize">Maximum combination size:</label>
+                <input type="number" id="maxCombinationSize" value="5" min="2" max="10" />
+                <span style="color: #666; font-size: 14px;">Maximum number of products in combination</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="minFrequency">Minimum frequency:</label>
+                <input type="number" id="minFrequency" value="2" min="1" />
+                <span style="color: #666; font-size: 14px;">Minimum times combination must appear</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="maxResults">Maximum results:</label>
+                <input type="number" id="maxResults" value="50" min="1" max="200" />
+                <span style="color: #666; font-size: 14px;">Maximum number of combinations to show</span>
+            </div>
+            
+            <button class="btn" onclick="reprocessFile()">Reprocess File</button>
+            <button class="btn" onclick="analyzeData()">Analyze Combinations</button>
+        </div>
+        
+        <div class="export-section" id="exportSection" style="display: none;">
+            <h4>Export Options</h4>
+            <div class="export-options">
+                <label for="exportFormat">Export Format:</label>
+                <select id="exportFormat">
+                    <option value="csv">CSV (Semicolon separated)</option>
+                    <option value="csv-comma">CSV (Comma separated)</option>
+                    <option value="tsv">TSV (Tab separated)</option>
+                </select>
+                
+                <label for="includeNames">Include Product Names:</label>
+                <input type="checkbox" id="includeNames" checked />
+                
+                <button class="btn btn-success" onclick="exportResults()">Export Results</button>
+            </div>
+        </div>
+        
+        <div id="results" style="display: none;">
+            <div class="stats" id="statsSection"></div>
+            <h3 class="results-header">
+                <span>Most Common Product Combinations</span>
+                <button class="btn btn-success" onclick="exportResults()" style="margin: 0;">Export CSV</button>
+            </h3>
+            <div class="results-content" id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let csvData = [];
+        let productNames = new Map();
+        let rawFileContent = '';
+        let debugInfo = [];
+        let analysisResults = [];
+        
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        
+        fileInput.addEventListener('change', handleFile);
+        
+        // Drag and drop functionality
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFile();
+            }
+        });
+        
+        function addDebugInfo(message) {
+            debugInfo.push(new Date().toISOString() + ': ' + message);
+            updateDebugDisplay();
+        }
+        
+        function updateDebugDisplay() {
+            const debugContent = document.getElementById('debugContent');
+            debugContent.textContent = debugInfo.join('\n');
+            debugContent.scrollTop = debugContent.scrollHeight;
+        }
+        
+        function toggleDebug() {
+            const debugSection = document.getElementById('debugSection');
+            debugSection.style.display = debugSection.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function handleFile() {
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            addDebugInfo(`File selected: ${file.name}, size: ${file.size} bytes`);
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                rawFileContent = e.target.result;
+                addDebugInfo(`File content loaded, length: ${rawFileContent.length} characters`);
+                parseCSV(rawFileContent);
+            };
+            
+            reader.onerror = function() {
+                addDebugInfo('ERROR: Failed to read file');
+                showError('Failed to read file. Please try again.');
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        }
+        
+        function reprocessFile() {
+            if (rawFileContent) {
+                addDebugInfo('Reprocessing file with new separator');
+                parseCSV(rawFileContent);
+            } else {
+                showError('No file loaded. Please upload a file first.');
+            }
+        }
+        
+        function parseCSV(csvText) {
+            try {
+                csvData = [];
+                productNames.clear();
+                debugInfo = [];
+                
+                const separator = document.getElementById('separator').value;
+                addDebugInfo(`Using separator: "${separator}"`);
+                
+                const lines = csvText.split(/\r?\n/);
+                addDebugInfo(`Total lines in file: ${lines.length}`);
+                
+                if (lines.length < 2) {
+                    throw new Error('CSV file must have at least a header and one data row.');
+                }
+                
+                // Process header
+                const headerLine = lines[0].trim();
+                const headers = headerLine.split(separator).map(h => h.trim());
+                addDebugInfo(`Found ${headers.length} header columns`);
+                
+                // Map column positions for EAN and name fields
+                const productColumns = new Map(); // Map product number to {ean: index, name: index}
+                
+                for (let i = 0; i < headers.length; i++) {
+                    const header = headers[i].toLowerCase();
+                    
+                    // Match ean1, ean2, etc.
+                    const eanMatch = header.match(/^ean(\d+)$/);
+                    if (eanMatch) {
+                        const productNum = parseInt(eanMatch[1]);
+                        if (!productColumns.has(productNum)) {
+                            productColumns.set(productNum, {});
+                        }
+                        productColumns.get(productNum).ean = i;
+                        addDebugInfo(`Found EAN column for product ${productNum} at index ${i}: ${headers[i]}`);
+                    }
+                    
+                    // Match nazwa1, nazwa2, etc.
+                    const nameMatch = header.match(/^nazwa(\d+)$/);
+                    if (nameMatch) {
+                        const productNum = parseInt(nameMatch[1]);
+                        if (!productColumns.has(productNum)) {
+                            productColumns.set(productNum, {});
+                        }
+                        productColumns.get(productNum).name = i;
+                        addDebugInfo(`Found name column for product ${productNum} at index ${i}: ${headers[i]}`);
+                    }
+                }
+                
+                // Sort product numbers and create ordered list
+                const productNumbers = Array.from(productColumns.keys()).sort((a, b) => a - b);
+                addDebugInfo(`Found product columns for products: ${productNumbers.join(', ')}`);
+                
+                if (productNumbers.length === 0) {
+                    throw new Error('No product columns found. Expected columns like ean1, ean2, nazwa1, nazwa2, etc.');
+                }
+                
+                let validRows = 0;
+                let emptyRows = 0;
+                let totalProducts = 0;
+                
+                // Process data rows - handle variable length rows
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) {
+                        emptyRows++;
+                        continue;
+                    }
+                    
+                    const values = line.split(separator);
+                    
+                    // Pad values array with empty strings if needed
+                    while (values.length < headers.length) {
+                        values.push('');
+                    }
+                    
+                    if (i <= 3) {
+                        addDebugInfo(`Row ${i}: ${values.length} values (padded to ${headers.length})`);
+                    }
+                    
+                    const orderProducts = [];
+                    
+                    // Extract products in order
+                    for (const productNum of productNumbers) {
+                        const productCol = productColumns.get(productNum);
+                        
+                        const eanIndex = productCol.ean;
+                        const nameIndex = productCol.name;
+                        
+                        const ean = eanIndex !== undefined && eanIndex < values.length ? 
+                                   values[eanIndex]?.trim() : '';
+                        const name = nameIndex !== undefined && nameIndex < values.length ? 
+                                    values[nameIndex]?.trim() : '';
+                        
+                        // Validate EAN - must exist, not be empty, not be just whitespace or common invalid values
+                        if (ean && 
+                            ean !== '' && 
+                            ean !== '0' && 
+                            ean !== 'NULL' && 
+                            ean !== 'null' && 
+                            ean.length >= 3) {
+                            
+                            orderProducts.push(ean);
+                            totalProducts++;
+                            
+                            // Store product name if available and not already stored
+                            if (name && name !== '' && name !== 'NULL' && name !== 'null' && !productNames.has(ean)) {
+                                productNames.set(ean, name);
+                            }
+                            
+                            if (i <= 3) {
+                                addDebugInfo(`  Product ${productNum}: EAN=${ean}, Name=${name || 'N/A'}`);
+                            }
+                        }
+                    }
+                    
+                    if (orderProducts.length > 0) {
+                        csvData.push(orderProducts);
+                        validRows++;
+                        
+                        if (i <= 3) {
+                            addDebugInfo(`  Order ${validRows} has ${orderProducts.length} products`);
+                        }
+                    }
+                }
+                
+                addDebugInfo(`Processing complete:`);
+                addDebugInfo(`- Empty/invalid rows: ${emptyRows}`);
+                addDebugInfo(`- Valid orders: ${validRows}`);
+                addDebugInfo(`- Total products found: ${totalProducts}`);
+                addDebugInfo(`- Unique products: ${productNames.size}`);
+                
+                if (csvData.length === 0) {
+                    throw new Error('No valid orders with products found. Check that your file has data in the expected format.');
+                }
+                
+                // Show sample of first few orders
+                addDebugInfo(`Sample orders:`);
+                for (let i = 0; i < Math.min(3, csvData.length); i++) {
+                    addDebugInfo(`  Order ${i + 1}: ${csvData[i].length} products - ${csvData[i].slice(0, 3).join(', ')}${csvData[i].length > 3 ? '...' : ''}`);
+                }
+                
+                document.getElementById('controls').style.display = 'block';
+                showSuccess(`File loaded successfully! Found ${csvData.length} orders with ${productNames.size} unique products (${totalProducts} total product entries).`);
+                
+            } catch (error) {
+                addDebugInfo(`ERROR: ${error.message}`);
+                showError('Error parsing CSV: ' + error.message);
+            }
+        }
+        
+        function analyzeData() {
+            if (csvData.length === 0) {
+                showError('Please upload a CSV file first.');
+                return;
+            }
+            
+            const minSize = parseInt(document.getElementById('minCombinationSize').value);
+            const maxSize = parseInt(document.getElementById('maxCombinationSize').value);
+            const minFreq = parseInt(document.getElementById('minFrequency').value);
+            const maxResults = parseInt(document.getElementById('maxResults').value);
+            
+            if (minSize > maxSize) {
+                showError('Minimum combination size cannot be greater than maximum size.');
+                return;
+            }
+            
+            showLoading('Analyzing product combinations...');
+            
+            setTimeout(() => {
+                try {
+                    const combinations = findCombinations(minSize, maxSize, minFreq, maxResults);
+                    analysisResults = combinations; // Store for export
+                    displayResults(combinations);
+                    document.getElementById('exportSection').style.display = 'block';
+                } catch (error) {
+                    showError('Error analyzing data: ' + error.message);
+                }
+            }, 100);
+        }
+        
+        function findCombinations(minSize, maxSize, minFreq, maxResults) {
+            const combinationCount = new Map();
+            let totalCombinationsGenerated = 0;
+            
+            addDebugInfo(`Starting combination analysis:`);
+            addDebugInfo(`- Min size: ${minSize}, Max size: ${maxSize}`);
+            addDebugInfo(`- Min frequency: ${minFreq}`);
+            
+            for (let orderIndex = 0; orderIndex < csvData.length; orderIndex++) {
+                const order = csvData[orderIndex];
+                if (order.length < minSize) continue;
+                
+                for (let size = minSize; size <= Math.min(maxSize, order.length); size++) {
+                    const combinations = getCombinations(order, size);
+                    totalCombinationsGenerated += combinations.length;
+                    
+                    for (const combo of combinations) {
+                        const key = combo.sort().join('|');
+                        combinationCount.set(key, (combinationCount.get(key) || 0) + 1);
+                    }
+                }
+            }
+            
+            addDebugInfo(`Generated ${totalCombinationsGenerated} total combinations`);
+            addDebugInfo(`Found ${combinationCount.size} unique combinations`);
+            
+            const results = [];
+            for (const [combination, count] of combinationCount.entries()) {
+                if (count >= minFreq) {
+                    results.push({
+                        products: combination.split('|'),
+                        count: count
+                    });
+                }
+            }
+            
+            addDebugInfo(`${results.length} combinations meet frequency threshold`);
+            
+            results.sort((a, b) => b.count - a.count);
+            return results.slice(0, maxResults);
+        }
+        
+        function getCombinations(array, size) {
+            if (size > array.length) return [];
+            if (size === 1) return array.map(item => [item]);
+            
+            const result = [];
+            
+            function combine(start, currentCombo) {
+                if (currentCombo.length === size) {
+                    result.push([...currentCombo]);
+                    return;
+                }
+                
+                for (let i = start; i < array.length; i++) {
+                    currentCombo.push(array[i]);
+                    combine(i + 1, currentCombo);
+                    currentCombo.pop();
+                }
+            }
+            
+            combine(0, []);
+            return result;
+        }
+        
+        function displayResults(combinations) {
+            const resultsDiv = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+            const statsSection = document.getElementById('statsSection');
+            
+            if (combinations.length === 0) {
+                resultsContent.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No combinations found with the specified criteria. Try lowering the minimum frequency or combination size.</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+            
+            const totalCombinations = combinations.length;
+            const maxFrequency = Math.max(...combinations.map(combo => combo.count));
+            const avgSize = combinations.reduce((sum, combo) => sum + combo.products.length, 0) / combinations.length;
+            const avgFrequency = combinations.reduce((sum, combo) => sum + combo.count, 0) / combinations.length;
+            const maxCombinationSize = Math.max(...combinations.map(combo => combo.products.length));
+            
+            statsSection.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${totalCombinations}</div>
+                    <div class="stat-label">Found Combinations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${maxFrequency}</div>
+                    <div class="stat-label">Highest Frequency</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${maxCombinationSize}</div>
+                    <div class="stat-label">Largest Combination</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${avgFrequency.toFixed(1)}</div>
+                    <div class="stat-label">Average Frequency</div>
+                </div>
+            `;
+            
+            let html = '';
+            for (const combo of combinations) {
+                const productTags = combo.products.map(ean => {
+                    const name = productNames.get(ean) || 'Unknown Product';
+                    const displayText = name !== 'Unknown Product' && name !== '' ? 
+                                      `${name} (${ean})` : ean;
+                    return `<span class="product-tag">${displayText}</span>`;
+                }).join('');
+                
+                html += `
+                    <div class="combination-item">
+                        <div class="combination-products">${productTags}</div>
+                        <div class="combination-count">${combo.count}</div>
+                    </div>
+                `;
+            }
+            
+            resultsContent.innerHTML = html;
+            resultsDiv.style.display = 'block';
+            
+            addDebugInfo(`Results displayed: ${combinations.length} combinations`);
+            addDebugInfo(`Maximum combination size: ${maxCombinationSize} products`);
+        }
+        
+        function exportResults() {
+            if (!analysisResults || analysisResults.length === 0) {
+                showError('No results to export. Please analyze the data first.');
+                return;
+            }
+            
+            const format = document.getElementById('exportFormat').value;
+            const includeNames = document.getElementById('includeNames').checked;
+            
+            let separator;
+            let fileExtension;
+            
+            switch (format) {
+                case 'csv':
+                    separator = ';';
+                    fileExtension = 'csv';
+                    break;
+                case 'csv-comma':
+                    separator = ',';
+                    fileExtension = 'csv';
+                    break;
+                case 'tsv':
+                    separator = '\t';
+                    fileExtension = 'tsv';
+                    break;
+                default:
+                    separator = ';';
+                    fileExtension = 'csv';
+            }
+            
+            // Find the maximum combination size to determine number of columns needed
+            const maxCombinationSize = Math.max(...analysisResults.map(combo => combo.products.length));
+            addDebugInfo(`Exporting with maximum combination size: ${maxCombinationSize}`);
+            
+            // Generate headers
+            const headers = ['Combination_Count'];
+            
+            for (let i = 1; i <= maxCombinationSize; i++) {
+                if (includeNames) {
+                    headers.push(`Product_${i}_EAN`);
+                    headers.push(`Product_${i}_Name`);
+                } else {
+                    headers.push(`Product_${i}_EAN`);
+                }
+            }
+            
+            // Generate CSV content
+            let csvContent = headers.join(separator) + '\n';
+            
+            for (const combo of analysisResults) {
+                const row = [combo.count];
+                
+                for (let i = 0; i < maxCombinationSize; i++) {
+                    const ean = i < combo.products.length ? combo.products[i] : '';
+                    const name = ean ? (productNames.get(ean) || '') : '';
+                    
+                    if (includeNames) {
+                        row.push(ean);
+                        row.push(name);
+                    } else {
+                        row.push(ean);
+                    }
+                }
+                
+                csvContent += row.join(separator) + '\n';
+            }
+            
+            // Create and download file
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const filename = `product-combinations-${timestamp}.${fileExtension}`;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                addDebugInfo(`Exported ${analysisResults.length} combinations to ${filename}`);
+                showSuccess(`Successfully exported ${analysisResults.length} combinations to ${filename}`);
+            } else {
+                showError('Export not supported in this browser.');
+            }
+        }
+        
+        function showLoading(message) {
+            const resultsContent = document.getElementById('resultsContent');
+            resultsContent.innerHTML = `<div class="loading" style="padding: 40px;">${message}</div>`;
+            document.getElementById('results').style.display = 'block';
+        }
+        
+        function showError(message) {
+            const resultsContent = document.getElementById('resultsContent');
+            resultsContent.innerHTML = `<div class="error" style="margin: 20px;">${message}</div>`;
+            document.getElementById('results').style.display = 'block';
+        }
+        
+        function showSuccess(message) {
+            const resultsContent = document.getElementById('resultsContent');
+            resultsContent.innerHTML = `<div class="success">${message}</div>`;
+            document.getElementById('results').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
